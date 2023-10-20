@@ -73,7 +73,7 @@ public class RNDocumentPickerModule extends NativeDocumentPickerSpec {
   private final ActivityEventListener activityEventListener = new BaseActivityEventListener() {
     @Override
     public void onActivityResult(Activity activity, int requestCode, int resultCode, Intent data) {
-      boolean isForeignResult = requestCode != READ_REQUEST_CODE && requestCode != PICK_DIR_REQUEST_CODE;
+      boolean isForeignResult = requestCode != READ_REQUEST_CODE && requestCode != PICK_DIR_REQUEST_CODE && requestCode != WRITE_REQUEST_CODE;
       if (isForeignResult) {
         return;
       }
