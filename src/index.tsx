@@ -28,6 +28,7 @@ export type DocumentPickerOptions<OS extends SupportedPlatforms> = {
     | Array<PlatformTypes[OS][keyof PlatformTypes[OS]] | string>
   mode?: 'import' | 'open'
   copyTo?: 'cachesDirectory' | 'documentDirectory'
+  title?:string
   allowMultiSelection?: boolean
   transitionStyle?: TransitionStyle
 } & Pick<ModalPropsIOS, 'presentationStyle'>
@@ -47,6 +48,27 @@ export async function pickDirectory<OS extends SupportedPlatforms>(
     return NativeDocumentPicker.pickDirectory()
   }
 }
+
+export async function store<OS extends SupportedPlatforms>(
+  opts?: DocumentPickerOptions<OS>,
+): Promise<DocumentPickerResponse> {
+  const options = {
+    allowMultiSelection: false,
+   type: [types.allFiles],
+    title: '',
+    ...opts,
+  }
+
+ const newOpts: DoPickParams<OS> = {
+    presentationStyle: 'formSheet',
+    ...options,
+    type: Array.isArray(options.type) ? options.type : [options.type],
+  } 
+  // return doStore(newOpts)
+  return NativeDocumentPicker.store(newOpts)
+  
+}
+
 
 export function pickSingle<OS extends SupportedPlatforms>(
   opts?: DocumentPickerOptions<OS>,
@@ -125,6 +147,53 @@ function doPick<OS extends SupportedPlatforms>(
   return NativeDocumentPicker.pick(options)
 }
 
+
+
+
+
+function doStore<OS extends SupportedPlatforms>(
+  options: DoPickParams<OS>,
+): Promise<DocumentPickerResponse> {
+  invariant(
+    !('filetype' in options),
+    'A `filetype` option was passed to DocumentPicker.store, the correct option is `type`',
+  )
+  invariant(
+    !('types' in options),
+    'A `types` option was passed to DocumentPicker.store, the correct option is `type`',
+  )
+
+  invariant(
+    options.type.every((type: unknown) => typeof type === 'string'),
+    `Unexpected type option in ${options.type}, did you try using a DocumentPicker.types.* that does not exist?`,
+  )
+  invariant(
+    options.type.length > 0,
+    '`type` option should not be an empty array, at least one type must be passed if the `type` option is not omitted',
+  )
+
+  invariant(
+    // @ts-ignore TS2345: Argument of type 'string' is not assignable to parameter of type 'PlatformTypes[OS][keyof PlatformTypes[OS]]'.
+    !options.type.includes('folder'),
+    'RN document picker: "folder" option was removed, use "pickDirectory()"',
+  )
+
+  if ('mode' in options && !['import', 'open'].includes(options.mode ?? '')) {
+    throw new TypeError('Invalid mode option: ' + options.mode)
+  }
+
+  if (
+    'copyTo' in options &&
+    !['cachesDirectory', 'documentDirectory'].includes(options.copyTo ?? '')
+  ) {
+    throw new TypeError('Invalid copyTo option: ' + options.copyTo)
+  }
+
+  return NativeDocumentPicker.store(options)
+}
+
+
+
 export function releaseSecureAccess(uris: Array<string>): Promise<void> {
   if (Platform.OS !== 'ios') {
     return Promise.resolve()
@@ -166,6 +235,7 @@ export default {
   pickDirectory,
   pick,
   pickSingle,
+  store,
   types,
   perPlatformTypes,
 }

@@ -38,4 +38,8 @@ public abstract class NativeDocumentPickerSpec extends ReactContextBaseJavaModul
   @ReactMethod
   @DoNotStrip
   public abstract void pickDirectory(Promise promise);
+
+  @ReactMethod
+  @DoNotStrip
+  public abstract void store(ReadableMap options, Promise promise);
 }
