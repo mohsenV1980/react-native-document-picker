@@ -59,13 +59,8 @@ export async function store<OS extends SupportedPlatforms>(
     ...opts,
   }
 
- const newOpts: DoPickParams<OS> = {
-    presentationStyle: 'formSheet',
-    ...options,
-    type: Array.isArray(options.type) ? options.type : [options.type],
-  } 
-  // return doStore(newOpts)
-  return NativeDocumentPicker.store(newOpts)
+
+  return NativeDocumentPicker.store(options)
   
 }
 
@@ -151,46 +146,6 @@ function doPick<OS extends SupportedPlatforms>(
 
 
 
-function doStore<OS extends SupportedPlatforms>(
-  options: DoPickParams<OS>,
-): Promise<DocumentPickerResponse> {
-  invariant(
-    !('filetype' in options),
-    'A `filetype` option was passed to DocumentPicker.store, the correct option is `type`',
-  )
-  invariant(
-    !('types' in options),
-    'A `types` option was passed to DocumentPicker.store, the correct option is `type`',
-  )
-
-  invariant(
-    options.type.every((type: unknown) => typeof type === 'string'),
-    `Unexpected type option in ${options.type}, did you try using a DocumentPicker.types.* that does not exist?`,
-  )
-  invariant(
-    options.type.length > 0,
-    '`type` option should not be an empty array, at least one type must be passed if the `type` option is not omitted',
-  )
-
-  invariant(
-    // @ts-ignore TS2345: Argument of type 'string' is not assignable to parameter of type 'PlatformTypes[OS][keyof PlatformTypes[OS]]'.
-    !options.type.includes('folder'),
-    'RN document picker: "folder" option was removed, use "pickDirectory()"',
-  )
-
-  if ('mode' in options && !['import', 'open'].includes(options.mode ?? '')) {
-    throw new TypeError('Invalid mode option: ' + options.mode)
-  }
-
-  if (
-    'copyTo' in options &&
-    !['cachesDirectory', 'documentDirectory'].includes(options.copyTo ?? '')
-  ) {
-    throw new TypeError('Invalid copyTo option: ' + options.copyTo)
-  }
-
-  return NativeDocumentPicker.store(options)
-}
 
 
 
