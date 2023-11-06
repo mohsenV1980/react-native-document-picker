@@ -44,6 +44,7 @@ public class DocumentPickerModule extends ReactContextBaseJavaModule {
   public static final String NAME = "RNDocumentPicker";
   private static final int READ_REQUEST_CODE = 41;
   private static final int PICK_DIR_REQUEST_CODE = 42;
+  private static final int WRITE_REQUEST_CODE = 101;
 
   private static final String E_ACTIVITY_DOES_NOT_EXIST = "ACTIVITY_DOES_NOT_EXIST";
   private static final String E_FAILED_TO_SHOW_PICKER = "FAILED_TO_SHOW_PICKER";
@@ -56,7 +57,7 @@ public class DocumentPickerModule extends ReactContextBaseJavaModule {
   private static final String OPTION_TYPE = "type";
   private static final String OPTION_MULTIPLE = "allowMultiSelection";
   private static final String OPTION_COPY_TO = "copyTo";
-
+  private static final String OPTION_TITLE = "title";
   private static final String FIELD_URI = "uri";
   private static final String FIELD_FILE_COPY_URI = "fileCopyUri";
   private static final String FIELD_COPY_ERROR = "copyError";
@@ -76,6 +77,8 @@ public class DocumentPickerModule extends ReactContextBaseJavaModule {
         onShowActivityResult(resultCode, data, storedPromise);
       } else if (requestCode == PICK_DIR_REQUEST_CODE) {
         onPickDirectoryResult(resultCode, data);
+      } else if (requestCode == WRITE_REQUEST_CODE) {
+        onStoreResult(resultCode, data);
       }
     }
   };
@@ -167,9 +170,79 @@ public class DocumentPickerModule extends ReactContextBaseJavaModule {
     }
   }
 
+  @ReactMethod
+  public void store(ReadableMap args, Promise promise) {
+    Activity currentActivity = getCurrentActivity();
+    this.promise = promise;
+    this.copyTo = args.hasKey(OPTION_COPY_TO) ? args.getString(OPTION_COPY_TO) : null;
+
+    if (currentActivity == null) {
+      sendError(E_ACTIVITY_DOES_NOT_EXIST, "Current activity does not exist");
+      return;
+    }
+
+    try {
+      Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+      intent.addCategory(Intent.CATEGORY_OPENABLE);
+
+      intent.setType("*/*");
+      if (!args.isNull(OPTION_TYPE)) {
+        ReadableArray types = args.getArray(OPTION_TYPE);
+        if (types != null) {
+          if (types.size() > 1) {
+            String[] mimeTypes = readableArrayToStringArray(types);
+            intent.putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes);
+          } else if (types.size() == 1) {
+            intent.setType(types.getString(0));
+          }
+        }
+      }
+
+      String title = "";
+      if (!args.isNull(OPTION_TITLE)) {
+        title = args.getString(OPTION_TITLE);
+
+      }
+      intent.putExtra(Intent.EXTRA_TITLE, title);
+
+      currentActivity.startActivityForResult(intent, WRITE_REQUEST_CODE, null);
+    } catch (ActivityNotFoundException e) {
+      sendError(E_UNABLE_TO_OPEN_FILE_TYPE, e.getLocalizedMessage());
+    } catch (Exception e) {
+      e.printStackTrace();
+      sendError(E_FAILED_TO_SHOW_PICKER, e.getLocalizedMessage());
+    }
+  }
+
+
+
+
+
   private void onPickDirectoryResult(int resultCode, Intent data) {
     if (resultCode == Activity.RESULT_CANCELED) {
       sendError(E_DOCUMENT_PICKER_CANCELED, "User canceled directory picker");
+      return;
+    } else if (resultCode != Activity.RESULT_OK) {
+      sendError(E_UNKNOWN_ACTIVITY_RESULT, "Unknown activity result: " + resultCode);
+      return;
+    }
+
+    if (data == null || data.getData() == null) {
+      sendError(E_INVALID_DATA_RETURNED, "Invalid data returned by intent");
+      return;
+    }
+    Uri uri = data.getData();
+
+    WritableMap map = Arguments.createMap();
+    map.putString(FIELD_URI, uri.toString());
+    promise.resolve(map);
+  }
+
+
+
+  private void onStoreResult(int resultCode, Intent data) {
+    if (resultCode == Activity.RESULT_CANCELED) {
+      sendError(E_DOCUMENT_PICKER_CANCELED, "User canceled document store");
       return;
     } else if (resultCode != Activity.RESULT_OK) {
       sendError(E_UNKNOWN_ACTIVITY_RESULT, "Unknown activity result: " + resultCode);

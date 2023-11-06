@@ -22,6 +22,7 @@ type DocumentPickerType = {
   pick(options: Record<string, any>): Promise<DocumentPickerResponse[]>
   releaseSecureAccess(uris: string[]): Promise<void>
   pickDirectory(): Promise<DirectoryPickerResponse>
+  store(options: Record<string, any>): Promise<DocumentPickerResponse>
 }
 
 const RNDocumentPicker: DocumentPickerType = NativeModules.RNDocumentPicker
@@ -35,6 +36,7 @@ export type DocumentPickerOptions<OS extends SupportedPlatforms> = {
     | Array<PlatformTypes[OS][keyof PlatformTypes[OS]] | string>
   mode?: 'import' | 'open'
   copyTo?: 'cachesDirectory' | 'documentDirectory'
+  title?:string
   allowMultiSelection?: boolean
   transitionStyle?: TransitionStyle
 } & Pick<ModalPropsIOS, 'presentationStyle'>
@@ -55,6 +57,21 @@ export async function pickDirectory<OS extends SupportedPlatforms>(
   }
 }
 
+export async function store<OS extends SupportedPlatforms>(
+  opts?: DocumentPickerOptions<OS>,
+): Promise<DocumentPickerResponse> {
+  const options = {
+    allowMultiSelection: false,
+   type: [types.allFiles],
+    title: '',
+    ...opts,
+  }
+
+
+  return RNDocumentPicker.store(options)
+
+}
+
 export function pickMultiple<OS extends SupportedPlatforms>(
   opts?: DocumentPickerOptions<OS>,
 ): Promise<DocumentPickerResponse[]> {
@@ -64,6 +81,8 @@ export function pickMultiple<OS extends SupportedPlatforms>(
   }
   return pick(options)
 }
+
+
 export function pickSingle<OS extends SupportedPlatforms>(
   opts?: DocumentPickerOptions<OS>,
 ): Promise<DocumentPickerResponse> {
@@ -183,6 +202,7 @@ export default {
   pick,
   pickMultiple,
   pickSingle,
+  store,
   types,
   perPlatformTypes,
 }
